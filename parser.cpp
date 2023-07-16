@@ -40,14 +40,15 @@ const size_t k_max_msg = 4096;
  */
 int32_t one_request(int connfd)
 {
-    errno = 0;
     char rbuf[HEADER + k_max_msg + 1]; // +1 for the null terminator
-    int32_t err = (connfd, rbuf, HEADER);
+    errno = 0;
+    int32_t err = read_full(connfd, rbuf, HEADER);
     if (err)
     {
         if (errno == 0)
         {
-            printf("EOF\n");
+            printf("EOF\n\n");
+            return -1;
         }
         else
         {
@@ -81,8 +82,8 @@ int32_t one_request(int connfd)
     // reply using the same protocol
     const char reply[] = "world!\n";
     char wbuf[HEADER + sizeof(reply)];
-    len = (u_int32_t)strlen(reply);
-    memcpy(&len, reply, HEADER);
+    len = (uint32_t)strlen(reply);
+    memcpy(wbuf, &len, HEADER);
     memcpy(wbuf + HEADER, reply, len);
 
     return write_all(connfd, wbuf, len + HEADER);

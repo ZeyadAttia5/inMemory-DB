@@ -31,7 +31,7 @@ static int32_t query(int fd, const char *text) {
     int32_t err = read_full(fd, rbuf, 4);
     if (err) {
         if (errno == 0) {
-            printf("EOF");
+            printf("EOF\n");
         } else {
             perror("read() header error");
         }
@@ -76,7 +76,7 @@ int main() {
     }
 
     // multiple requests
-    int32_t err = query(fd, "h");
+    int32_t err = query(fd, "hello1");
     if (err) {
         goto L_DONE;
     }
