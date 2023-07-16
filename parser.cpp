@@ -1,4 +1,3 @@
-#include <stdlib.h>
 #include "IO_helpers.h"
 #include <stdio.h>
 #include <errno.h>

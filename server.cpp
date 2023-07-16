@@ -55,19 +55,19 @@ int main()
     }
 }
 
-static void do_something(int connfd)
-{
-    char rbuf[64] = {};
-    printf("in do_something\n");
-    ssize_t data = read(connfd, rbuf, sizeof(rbuf) - 1);
-    printf("read: %s\n", rbuf);
-    if (data < 0)
-    {
-        perror("read() error in server");
-        return;
-    }
-    printf("client says: %s\n", rbuf);
-    char wbuf[] = "world";
-    write(connfd, wbuf, strlen(wbuf));
-}
+// static void do_something(int connfd)
+// {
+//     char rbuf[64] = {};
+//     printf("in do_something\n");
+//     ssize_t data = read(connfd, rbuf, sizeof(rbuf) - 1);
+//     printf("read: %s\n", rbuf);
+//     if (data < 0)
+//     {
+//         perror("read() error in server");
+//         return;
+//     }
+//     printf("client says: %s\n", rbuf);
+//     char wbuf[] = "world";
+//     write(connfd, wbuf, strlen(wbuf));
+// }
 
