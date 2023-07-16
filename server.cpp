@@ -1,11 +1,9 @@
 #include <sys/socket.h>
-#include <stdlib.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
-
-static void do_something(int connfd);
+#include "server.h"
 
 int main()
 {
@@ -44,8 +42,16 @@ int main()
             perror("connfd in server");
             continue;
         }
-        do_something(connfd);
+        while (true)
+        {
+            int32_t err = one_request(connfd);
+            if (err)
+            {
+                break;
+            }
+        }
         close(connfd);
+        // do_something(connfd);
     }
 }
 
@@ -64,3 +70,4 @@ static void do_something(int connfd)
     char wbuf[] = "world";
     write(connfd, wbuf, strlen(wbuf));
 }
+
