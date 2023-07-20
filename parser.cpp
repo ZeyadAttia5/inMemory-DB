@@ -3,9 +3,7 @@
 #include <errno.h>
 #include <memory.h>
 #include <cstdint>
-
-#define HEADER 4
-const size_t k_max_msg = 4096;
+#include "constants.h"
 
 /*
 
@@ -51,7 +49,7 @@ int32_t one_request(int connfd)
         }
         else
         {
-            perror("error reading the header");
+            perror("error reading the HEADER");
         }
     }
 
