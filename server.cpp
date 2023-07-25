@@ -174,21 +174,25 @@ static int32_t handle_request(const uint8_t *req, uint32_t reqlen, uint32_t *res
 {
     vector<string> cmd;
     parse_request(req, reqlen, cmd);
-
-    if (strcasecmp((cmd).at(0), "get"))
+    //TODO check on the string == string logic
+    string get = "get";
+    string set = "set";
+    string del = "del";
+    if (cmd.at(0) == get)
     {
         *rescode = do_get(cmd, res, reslen);
     }
-    else if (strcasecmp((cmd).at(0), "set"))
+    else if (cmd.at(0) == set)
     {
         *rescode = do_set(cmd, res, reslen);
     }
-    else if (strcasecmp((cmd).at(0), "del"))
+    else if (cmd.at(0) == del)
     {
         *rescode = do_del(cmd, res, reslen);
     }
 }
 
+//TODO
 static uint32_t do_del(vector<string> &cmd, uint8_t *res, uint32_t *reslen)
 {
 }
