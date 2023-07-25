@@ -176,7 +176,7 @@ static bool try_one_request(Conn *conn)
     // continue the outer loop if the request was fully processed
     return (conn->state == STATE_REQ);
 }
-static int32_t handle_request(const uint8_t *req, uint32_t reqlen, uint32_t *rescode, uint8_t *res, uint32_t *reslen)
+static int32_t handle_request(const uint8_t *req, uint32_t reqlen, uint32_t *res_status, uint8_t *res, uint32_t *reslen)
 {
     vector<string> cmd;
     parse_request(req, reqlen, cmd);
@@ -184,22 +184,43 @@ static int32_t handle_request(const uint8_t *req, uint32_t reqlen, uint32_t *res
     string get = "get";
     string set = "set";
     string del = "del";
-    if (cmd.at(0) == get)
+    if (cmd.at(0) == get && cmd.size() == 2)
     {
-        *rescode = do_get(cmd, res, reslen);
+        *res_status = do_get(cmd, res, reslen);
     }
-    else if (cmd.at(0) == set)
+    else if (cmd.at(0) == set && cmd.size() == 3)
     {
-        *rescode = do_set(cmd, res, reslen);
+        *res_status = do_set(cmd, res, reslen);
     }
-    else if (cmd.at(0) == del)
+    else if (cmd.at(0) == del && cmd.size() == 2)
     {
-        *rescode = do_del(cmd, res, reslen);
+        *res_status = do_del(cmd, res, reslen);
+    }
+    else
+    {
+        // unhandled command
+        *res_status = RES_ERR;
+        const char *msg = "Unknown cmd";
+        strcpy((char *)res, msg);
+        *reslen = strlen(msg);
+        return 0;
     }
 }
 
 // TODO understand maps in c++
 static uint32_t do_del(vector<string> &cmd, uint8_t *res, uint32_t *reslen)
+{
+    (void)res, reslen;
+    g_map.erase(cmd[1]);
+    return RES_OK;
+}
+static uint32_t do_set(vector<string> &cmd, uint8_t *res, uint32_t *reslen)
+{
+    (void)res, reslen;
+    g_map[cmd[1]] = cmd[2];
+    return RES_OK;
+}
+static uint32_t do_get(vector<string> &cmd, uint8_t *res, uint32_t *reslen)
 {
     if (!g_map.count(cmd[1]))
     {
@@ -210,12 +231,6 @@ static uint32_t do_del(vector<string> &cmd, uint8_t *res, uint32_t *reslen)
     memcpy(res, val.data(), val.size());
     *reslen = (uint32_t)val.size();
     return RES_OK;
-}
-static uint32_t do_set(vector<string> &cmd, uint8_t *res, uint32_t *reslen)
-{
-}
-static uint32_t do_get(vector<string> &cmd, uint8_t *res, uint32_t *reslen)
-{
 }
 
 static int8_t parse_request(const uint8_t *req, uint32_t reqlen, vector<string> &cmd)
