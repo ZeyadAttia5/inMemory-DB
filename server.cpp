@@ -60,6 +60,12 @@ enum
     STATE_RES = 1,
     STATE_END = 2, // mark the connection for deletion
 };
+enum
+{
+    RES_OK = 0,
+    RES_ERR = 1,
+    RES_NX = 2,
+};
 
 struct Conn
 {
@@ -174,7 +180,7 @@ static int32_t handle_request(const uint8_t *req, uint32_t reqlen, uint32_t *res
 {
     vector<string> cmd;
     parse_request(req, reqlen, cmd);
-    //TODO check on the string == string logic
+    // TODO check on the string == string logic
     string get = "get";
     string set = "set";
     string del = "del";
@@ -192,9 +198,18 @@ static int32_t handle_request(const uint8_t *req, uint32_t reqlen, uint32_t *res
     }
 }
 
-//TODO
+// TODO understand maps in c++
 static uint32_t do_del(vector<string> &cmd, uint8_t *res, uint32_t *reslen)
 {
+    if (!g_map.count(cmd[1]))
+    {
+        return RES_NX;
+    }
+    string &val = g_map[cmd[1]];
+    assert(val.size() <= k_max_msg);
+    memcpy(res, val.data(), val.size());
+    *reslen = (uint32_t)val.size();
+    return RES_OK;
 }
 static uint32_t do_set(vector<string> &cmd, uint8_t *res, uint32_t *reslen)
 {
