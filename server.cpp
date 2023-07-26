@@ -100,7 +100,6 @@ static int32_t accept_new_conn(vector<Conn *> &fd2conn, int fd)
         msg("accept() error");
         return -1; // error
     }
-
     // set the new connection fd to nonblocking mode
     fd_set_nb(connfd);
     // creating the struct Conn
@@ -118,8 +117,107 @@ static int32_t accept_new_conn(vector<Conn *> &fd2conn, int fd)
     conn_put(fd2conn, conn);
     return 0;
 }
+static int8_t parse_request(const uint8_t *req, uint32_t reqlen, vector<string> &cmd)
+{
 
+    if (reqlen < HEADER)
+    {
+        return -1;
+    }
+    uint32_t nstr = 0;
+    memcpy(&nstr, &req[0], HEADER);
+
+    if (nstr > k_max_msg)
+    {
+        return -2;
+    }
+
+    uint32_t pos = HEADER;
+    while (nstr--)
+    {
+        if (pos + HEADER > reqlen)
+        {
+            return -3;
+        }
+        uint32_t strlen = 0;
+        memcpy(&strlen, &req[pos], HEADER); // put length of the string in the str variable
+        if (strlen + pos + HEADER > reqlen)
+        {
+            return -4;
+        }
+        cmd.push_back(string((char *)&req[pos + HEADER], strlen));
+        pos += HEADER + strlen; // point pos to next str
+    }
+
+    if (pos != reqlen)
+    {
+        return -5;
+    }
+    return 0;
+}
+static uint32_t do_del(vector<string> &cmd, uint8_t *res, uint32_t *reslen)
+{
+    (void)res, reslen;
+    g_map.erase(cmd[1]);
+    return RES_OK;
+}
+static uint32_t do_set(vector<string> &cmd, uint8_t *res, uint32_t *reslen)
+{
+    (void)res, reslen;
+    g_map[cmd[1]] = cmd[2];
+    return RES_OK;
+}
+static uint32_t do_get(vector<string> &cmd, uint8_t *res, uint32_t *reslen)
+{
+    if (!g_map.count(cmd[1]))
+    {
+        return RES_NX;
+    }
+    string &val = g_map[cmd[1]];
+    assert(val.size() <= k_max_msg);
+    memcpy(res, val.data(), val.size());
+    *reslen = (uint32_t)val.size();
+    return RES_OK;
+}
+static bool cmd_is(const std::string &word, const char *cmd)
+{
+    return 0 == strcasecmp(word.c_str(), cmd);
+}
+static int32_t handle_request(const uint8_t *req, uint32_t reqlen, uint32_t *res_status, uint8_t *res, uint32_t *reslen)
+{
+    vector<string> cmd;
+
+    if (parse_request(req, reqlen, cmd) != 0)
+    {
+        perror("bad req");
+        return -1;
+    }
+    // TODO check on the string == string logic
+    if (cmd_is(cmd[0], "get") && cmd.size() == 2)
+    {
+        *res_status = do_get(cmd, res, reslen);
+    }
+    else if (cmd_is(cmd[0], "set") && cmd.size() == 3)
+    {
+        *res_status = do_set(cmd, res, reslen);
+    }
+    else if (cmd_is(cmd[0], "del") && cmd.size() == 2)
+    {
+        *res_status = do_del(cmd, res, reslen);
+    }
+    else
+    {
+        // unhandled command
+        *res_status = RES_ERR;
+        const char *msg = "Unknown cmd";
+        strcpy((char *)res, msg);
+        *reslen = strlen(msg);
+        return 0;
+    }
+    return 0;
+}
 static void state_req(Conn *conn);
+
 static void state_res(Conn *conn);
 
 static bool try_one_request(Conn *conn)
@@ -145,9 +243,14 @@ static bool try_one_request(Conn *conn)
     }
 
     // got one request, do something with it
-    uint32_t reslen = 0;
     uint32_t resstatus = 0;
-    int32_t error = handle_request(&conn->rbuf[HEADER], len, &resstatus, conn->wbuf, &reslen);
+    uint32_t reslen = 0;
+    int32_t error = handle_request(
+        &conn->rbuf[HEADER], 
+        len, 
+        &resstatus, 
+        &conn->wbuf[HEADER + HEADER], 
+        &reslen);
     if (error)
     {
         conn->state = STATE_END;
@@ -155,9 +258,10 @@ static bool try_one_request(Conn *conn)
     }
 
     // generating echoing response
-    memcpy(&conn->wbuf[0], &len, HEADER);
-    memcpy(&conn->wbuf[HEADER], &conn->rbuf[HEADER], len);
-    conn->wbuf_size = HEADER + len;
+    reslen+=HEADER;
+    memcpy(&conn->wbuf[0], &reslen, HEADER);
+    memcpy(&conn->wbuf[HEADER], &resstatus, HEADER);
+    conn->wbuf_size = HEADER + reslen;
 
     // remove the request from the buffer.
     // note: frequent memmove is inefficient.
@@ -176,95 +280,7 @@ static bool try_one_request(Conn *conn)
     // continue the outer loop if the request was fully processed
     return (conn->state == STATE_REQ);
 }
-static int32_t handle_request(const uint8_t *req, uint32_t reqlen, uint32_t *res_status, uint8_t *res, uint32_t *reslen)
-{
-    vector<string> cmd;
-    parse_request(req, reqlen, cmd);
-    // TODO check on the string == string logic
-    string get = "get";
-    string set = "set";
-    string del = "del";
-    if (cmd.at(0) == get && cmd.size() == 2)
-    {
-        *res_status = do_get(cmd, res, reslen);
-    }
-    else if (cmd.at(0) == set && cmd.size() == 3)
-    {
-        *res_status = do_set(cmd, res, reslen);
-    }
-    else if (cmd.at(0) == del && cmd.size() == 2)
-    {
-        *res_status = do_del(cmd, res, reslen);
-    }
-    else
-    {
-        // unhandled command
-        *res_status = RES_ERR;
-        const char *msg = "Unknown cmd";
-        strcpy((char *)res, msg);
-        *reslen = strlen(msg);
-        return 0;
-    }
-}
 
-// TODO understand maps in c++
-static uint32_t do_del(vector<string> &cmd, uint8_t *res, uint32_t *reslen)
-{
-    (void)res, reslen;
-    g_map.erase(cmd[1]);
-    return RES_OK;
-}
-static uint32_t do_set(vector<string> &cmd, uint8_t *res, uint32_t *reslen)
-{
-    (void)res, reslen;
-    g_map[cmd[1]] = cmd[2];
-    return RES_OK;
-}
-static uint32_t do_get(vector<string> &cmd, uint8_t *res, uint32_t *reslen)
-{
-    if (!g_map.count(cmd[1]))
-    {
-        return RES_NX;
-    }
-    string &val = g_map[cmd[1]];
-    assert(val.size() <= k_max_msg);
-    memcpy(res, val.data(), val.size());
-    *reslen = (uint32_t)val.size();
-    return RES_OK;
-}
-
-static int8_t parse_request(const uint8_t *req, uint32_t reqlen, vector<string> &cmd)
-{
-    uint8_t error = 0;
-
-    if (reqlen < HEADER)
-    {
-        return -1;
-    }
-    uint32_t nstr = 0;
-    memcpy(&nstr, &req[0], HEADER);
-
-    if (nstr > k_max_msg)
-    {
-        return -2;
-    }
-
-    uint32_t pos = HEADER;
-    while (nstr--)
-    {
-
-        uint32_t str = 0;
-        memcpy(&str, &req[pos], HEADER); // put length of the string in the str variable
-
-        cmd.push_back(string((char *)&req[pos + HEADER], str));
-        pos += HEADER + str; // point pos to next str
-    }
-
-    if (pos != reqlen)
-    {
-        return -3;
-    }
-}
 static bool try_fill_buffer(Conn *conn)
 {
     // try to fill the buffer
@@ -404,13 +420,13 @@ int main()
     }
 
     // a map of all client connections, keyed by fd
-    vector<Conn *> fd2conn;
+    std::vector<Conn *> fd2conn;
 
     // set the listen fd to nonblocking mode
     fd_set_nb(fd);
 
     // the event loop
-    vector<struct pollfd> poll_args;
+    std::vector<struct pollfd> poll_args;
     while (true)
     {
         // prepare the arguments of the poll()
