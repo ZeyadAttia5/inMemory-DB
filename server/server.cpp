@@ -9,6 +9,8 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <iostream>
+#include <algorithm>
 #include <netinet/ip.h>
 #include <vector>
 // #include <map>
@@ -46,6 +48,18 @@ static void fd_set_nb(int fd)
     {
         die("fcntl error");
     }
+}
+
+std::string str_tolower(std::string s)
+{
+    std::transform(s.begin(), s.end(), s.begin(),
+                   // static_cast<int(*)(int)>(std::tolower)         // wrong
+                   // [](int c){ return std::tolower(c); }           // wrong
+                   // [](char c){ return std::tolower(c); }          // wrong
+                   [](unsigned char c)
+                   { return std::tolower(c); } // correct
+    );
+    return s;
 }
 
 const size_t k_max_msg = 4096;
@@ -172,6 +186,7 @@ HashTable *g_map = initHashTable(4);
 
 static void do_get(std::vector<std::string> &cmd, std::string &out)
 {
+    cmd[1] = str_tolower(cmd[1]);
     if (!contains(g_map, cmd[1]))
     {
         return res_ser_err(out, RES_ERR, "Key not found");
@@ -184,7 +199,7 @@ static void do_set(std::vector<std::string> &cmd, std::string &out)
 {
     // (void)res;
     // (void)reslen;
-
+    cmd[1] = str_tolower(cmd[1]);
     set(g_map, cmd[1], cmd[2]);
 
     return res_ser_nil(out);
@@ -194,7 +209,8 @@ static void do_del(std::vector<std::string> &cmd, std::string &out)
 {
     // (void)res;
     // (void)reslen;
-    // g_map.erase(cmd[1]);
+    // g_map.erase(cmd[1])
+    cmd[1] = str_tolower(cmd[1]);
     remove(g_map, cmd[1]);
     return res_ser_nil(out);
 }

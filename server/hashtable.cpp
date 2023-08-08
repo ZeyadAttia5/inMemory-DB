@@ -180,26 +180,29 @@ int const N = 4;
 
 void resizeUp(HashTable* ht, int newSize){
 
-    std::cout << "resizing" << std::endl;
+    std::cout << "resizing Up     ";
 
     ht->tables[1].size = newSize;
 
     ht->tables[1].table = (HNode**) malloc(sizeof(HNode*) * newSize);
 
     ht->tables[1].taken = 0;
-    
+
+    std::cout << "Done" << std::endl;
 
 }
 
 void resizeDown(HashTable* ht, int newSize){
 
-    std::cout << "resizing" << std::endl;
+    std::cout << "resizing Down    ";
 
     ht->tables[1].size = newSize;
 
     ht->tables[1].table = (HNode**) malloc(sizeof(HNode*) * newSize);
 
     ht->tables[1].taken = 0;
+
+    std::cout << "Done" << std::endl;
     
 
 }
