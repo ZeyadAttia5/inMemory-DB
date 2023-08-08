@@ -177,30 +177,29 @@ static uint32_t do_get(std::vector<std::string> &cmd, std::string &out)
     {
         return RES_NX;
     }
-    std::string val = get(g_map, cmd[1]);
-    assert(val.size() <= k_max_msg);
-    memcpy(res, val.data(), val.size());
-    *reslen = (uint32_t)val.size();
+    const std::string val = get(g_map, cmd[1]);
+    res_ser_str(out, val);
     return RES_OK;
 }
 
-static uint32_t do_set(std::vector<std::string> &cmd, std::string &out)
+static void do_set(std::vector<std::string> &cmd, std::string &out)
 {
     // (void)res;
     // (void)reslen;
 
     set(g_map, cmd[1], cmd[2]);
-    // g_map[cmd[1]] = cmd[2];
-    return RES_OK;
+    
+    return res_ser_nil(out);
 }
 
-static uint32_t do_del(std::vector<std::string> &cmd, std::string &out)
+static void do_del(std::vector<std::string> &cmd, std::string &out)
 {
     // (void)res;
     // (void)reslen;
     // g_map.erase(cmd[1]);
     remove(g_map, cmd[1]);
-    return RES_OK;
+    return res_ser_nil(out);
+    
 }
 
 static uint32_t do_keys(std::vector<std::string> &cmd, std::string &out)
@@ -219,28 +218,26 @@ static void do_request(std::vector<std::string> &cmd, std::string &out)
 
     if (cmd.size() == 1 && cmd_is(cmd[0], "keys"))
     {
-        rescode = do_keys(cmd, out);
+        do_keys(cmd, out);
     }
     else if (cmd.size() == 2 && cmd_is(cmd[0], "get"))
     {
-        rescode = do_get(cmd, out);
+        do_get(cmd, out);
     }
     else if (cmd.size() == 3 && cmd_is(cmd[0], "set"))
     {
-        rescode = do_set(cmd, out);
+        do_set(cmd, out);
     }
     else if (cmd.size() == 2 && cmd_is(cmd[0], "del"))
     {
-        rescode = do_del(cmd, out);
+        do_del(cmd, out);
     }
     else
     {
         // cmd is not recognized
         rescode = RES_ERR;
         const char *msg = "Unknown cmd";
-        return 0;
     }
-    return 0;
 }
 
 static bool try_one_request(Conn *conn)
@@ -277,10 +274,11 @@ static bool try_one_request(Conn *conn)
         return false;
     }
 
+    //NOTE: changes here
     // got one request, generate the response in a string.
     std::string res;
 
-    int32_t err = do_request(cmd, res);
+    do_request(cmd, res);
     if (err)
     {
         msg("do_request error");
@@ -288,11 +286,24 @@ static bool try_one_request(Conn *conn)
         return false;
     }
 
-    uint32_t rescode = 0;
-    uint32_t wlen = 0;
-    wlen += 4;
+
+    //check if the response is too long
+    //length of data + 4 bytes for length
+    if (res.size() + 4 > k_max_msg)
+    {
+        //clear the buffer to be able to send error msg
+        res.clear();
+        res_ser_err(res, RES_ERR, "too long");
+    }
+
+    /* 
+        - add the length of the response to the response buffer res (4bytes)
+        - add the data of the response to the response buffer res   (length bytes)
+        - increase the write buffer size wbuf by 4 + wlen (length + data)
+     */
+    uint32_t wlen = (uint32_t) res.size();
     memcpy(&conn->wbuf[0], &wlen, 4);
-    memcpy(&conn->wbuf[4], &rescode, 4);
+    memcpy(&conn->wbuf[4], res.data(), res.size());
     conn->wbuf_size = 4 + wlen;
 
     // remove the request from the buffer.
