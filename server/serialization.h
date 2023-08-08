@@ -1,7 +1,7 @@
 
-#ifndef SERIALIZATION_H
-#define SERIALIZATION_H
 
+
+#include <string>
 /* 
     Serialization format: Type - Length - Value     (TLV)
     Type: 1 byte
@@ -26,9 +26,9 @@ enum SER_TYPE{
 };
 
 void res_ser_nil(std::string &res);
-void res_ser_err(std::string &res, int err_code, const char *err_msg);
+void res_ser_err(std::string &res, int32_t err_code, const std::string &err_msg);
 void res_ser_str(std::string &res, const std::string &str);
-void res_ser_int(std::string &res, int num);
-void res_ser_arr(std::string &res, int len);
+void res_ser_int(std::string &res, int64_t num);
+void res_ser_arr(std::string &res, uint32_t len);
 
-#endif
+

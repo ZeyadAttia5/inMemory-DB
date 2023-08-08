@@ -10,7 +10,6 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/ip.h>
-#include <string>
 #include <vector>
 // #include <map>
 
@@ -171,15 +170,14 @@ enum
 
 HashTable *g_map = initHashTable(4);
 
-static uint32_t do_get(std::vector<std::string> &cmd, std::string &out)
+static void do_get(std::vector<std::string> &cmd, std::string &out)
 {
     if (!contains(g_map, cmd[1]))
     {
-        return RES_NX;
+        return res_ser_err(out, RES_ERR, "Key not found");
     }
     const std::string val = get(g_map, cmd[1]);
-    res_ser_str(out, val);
-    return RES_OK;
+    return res_ser_str(out, val);
 }
 
 static void do_set(std::vector<std::string> &cmd, std::string &out)
@@ -188,7 +186,7 @@ static void do_set(std::vector<std::string> &cmd, std::string &out)
     // (void)reslen;
 
     set(g_map, cmd[1], cmd[2]);
-    
+
     return res_ser_nil(out);
 }
 
@@ -199,12 +197,10 @@ static void do_del(std::vector<std::string> &cmd, std::string &out)
     // g_map.erase(cmd[1]);
     remove(g_map, cmd[1]);
     return res_ser_nil(out);
-    
 }
 
-static uint32_t do_keys(std::vector<std::string> &cmd, std::string &out)
+static void do_keys(std::vector<std::string> &cmd, std::string &out)
 {
-    
 }
 
 static bool cmd_is(const std::string &word, const char *cmd)
@@ -274,34 +270,26 @@ static bool try_one_request(Conn *conn)
         return false;
     }
 
-    //TODO changes here
-    // got one request, generate the response in a string.
+    // TODO changes here
+    //  got one request, generate the response in a string.
     std::string res;
-
     do_request(cmd, res);
-    if (err)
-    {
-        msg("do_request error");
-        conn->state = STATE_END;
-        return false;
-    }
 
-
-    //check if the response is too long
-    //length of data + 4 bytes for length
+    // check if the response is too long
+    // length of data + 4 bytes for length
     if (res.size() + 4 > k_max_msg)
     {
-        //clear the buffer to be able to send error msg
+        // clear the buffer to be able to send error msg
         res.clear();
         res_ser_err(res, RES_ERR, "too long");
     }
 
-    /* 
+    /*
         - add the length of the response to the response buffer res (4bytes)
         - add the data of the response to the response buffer res   (length bytes)
         - increase the write buffer size wbuf by 4 + wlen (length + data)
      */
-    uint32_t wlen = (uint32_t) res.size();
+    uint32_t wlen = (uint32_t)res.size();
     memcpy(&conn->wbuf[0], &wlen, 4);
     memcpy(&conn->wbuf[4], res.data(), res.size());
     conn->wbuf_size = 4 + wlen;

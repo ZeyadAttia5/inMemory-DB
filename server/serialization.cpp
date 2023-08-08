@@ -1,6 +1,5 @@
 
 #include "serialization.h"
-#include <string>
 
 /*
     packs a nil into the response string
@@ -30,7 +29,7 @@ void res_ser_err(std::string &res, int32_t err_code, const std::string &err_msg)
 {
     res.push_back(SER_ERR);
 
-    res.append((char *)err_code, 4); // 4 bytes
+    res.append((char *)&err_code, 4); // 4 bytes
 
     /*
         client reads character by character,
@@ -52,7 +51,7 @@ void res_ser_err(std::string &res, int32_t err_code, const std::string &err_msg)
     o/p: res
     return: void
 */
-void res_ser_str(std::string &res, std::string &str)
+void res_ser_str(std::string &res, const std::string &str)
 {
     res.push_back(SER_STR);
 
@@ -91,7 +90,7 @@ void res_ser_int(std::string &res, int64_t num)
     o/p: res
     return: void
 */
-void res_ser_arr(std::string &res, int len)
+void res_ser_arr(std::string &res, uint32_t len)
 {
     res.push_back(SER_ARR);
     res.append((uint32_t)len, 4);
