@@ -274,7 +274,7 @@ static bool try_one_request(Conn *conn)
         return false;
     }
 
-    //NOTE: changes here
+    //TODO changes here
     // got one request, generate the response in a string.
     std::string res;
 
