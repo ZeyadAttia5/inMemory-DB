@@ -154,7 +154,7 @@ void _set_helper(dict *dict, std::string key, std::string value)
 
     // TODO: why *2?
 
-    HNode *newNode = (HNode *)malloc(sizeof(HNode) * 2);
+    HNode *newNode = new HNode;
 
     std::cout << "adding " << key << " to index " << index << std::endl;
 
@@ -178,7 +178,7 @@ void resizeUp(HashTable *ht, int newSize)
 
     ht->tables[1].size = newSize;
 
-    ht->tables[1].table = (HNode **)malloc(sizeof(HNode *) * newSize);
+    ht->tables[1].table = (HNode **)realloc(ht->tables[1].table, sizeof(HNode *) * newSize);
 
     ht->tables[1].taken = 0;
 
@@ -199,7 +199,7 @@ void resizeDown(HashTable *ht, int newSize)
             I tried freeing the memory of ht->tables[1].table before malloc, but it didnt work.
             free(ht->tables[1].table);
     */
-    ht->tables[1].table = (HNode **)malloc(sizeof(HNode *) * newSize);
+    ht->tables[1].table = (HNode **)realloc(ht->tables[1].table, sizeof(HNode *) * newSize);
 
     ht->tables[1].taken = 0;
 
