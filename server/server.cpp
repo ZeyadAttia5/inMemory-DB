@@ -124,6 +124,7 @@ static int32_t accept_new_conn(std::vector<Conn *> &fd2conn, int fd)
 }
 
 static void state_req(Conn *conn);
+
 static void state_res(Conn *conn);
 
 const size_t k_max_args = 1024;
@@ -182,7 +183,7 @@ enum
 // until we implement a hashtable in the next chapter.
 // static std::map<std::string, std::string> g_map;
 
-HashTable *g_map = initHashTable(4);
+HashTable *g_map = initHashTable(2);
 
 static void do_get(std::vector<std::string> &cmd, std::string &out)
 {
@@ -217,6 +218,46 @@ static void do_del(std::vector<std::string> &cmd, std::string &out)
 
 static void do_keys(std::vector<std::string> &cmd, std::string &out)
 {
+    res_ser_arr(out, (uint32_t)g_map->size);
+    // traverse over the 1st hashtable
+    for (int i = 0; i < g_map->tables[0].size; i++)
+    {
+        // go to the first table, traverse over the table
+        // index into each linked list and str_out the key
+        if (g_map->tables[0].table[i] != NULL)
+        {
+            size_t size = g_map->tables[0].table[i]->key.size();
+            if (size != 0)
+            {
+                HNode *node = g_map->tables[0].table[i];
+                while (node != NULL)
+                {
+                    res_ser_str(out, node->key);
+                    node = node->next;
+                }
+            }
+        }
+    }
+
+    // traverse over the 2nd hashtable
+    for (int i = 0; i < g_map->tables[1].size; i++)
+    {
+        // go to the first table, traverse over the table
+        // index into each linked list and str_out the key
+        if (g_map->tables[1].table[i] != NULL)
+        {
+            size_t size = g_map->tables[1].table[i]->key.size();
+            if (size != 0)
+            {
+                HNode *node = g_map->tables[1].table[i];
+                while (node != NULL)
+                {
+                    res_ser_str(out, node->key);
+                    node = node->next;
+                }
+            }
+        }
+    }
 }
 
 static bool cmd_is(const std::string &word, const char *cmd)

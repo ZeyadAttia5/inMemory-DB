@@ -93,5 +93,5 @@ void res_ser_int(std::string &res, int64_t num)
 void res_ser_arr(std::string &res, uint32_t len)
 {
     res.push_back(SER_ARR);
-    res.append((uint32_t)len, 4);
+    res.append((char *) &len, 4);
 }
