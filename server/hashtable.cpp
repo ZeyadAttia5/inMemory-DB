@@ -192,7 +192,13 @@ void resizeDown(HashTable *ht, int newSize)
 
     ht->tables[1].size = newSize;
 
-    free(ht->tables[1].table);
+    /*
+        Bug:
+            //->> the following line causes the memory of ht->tables[1].table to be unreadable
+
+            I tried freeing the memory of ht->tables[1].table before malloc, but it didnt work.
+            free(ht->tables[1].table);
+    */
     ht->tables[1].table = (HNode **)malloc(sizeof(HNode *) * newSize);
 
     ht->tables[1].taken = 0;
@@ -323,11 +329,11 @@ void set(HashTable *ht, std::string key, std::string value)
     {
 
         int newSize = nextPrime(ht->size / 2);
-        if (newSize < ht->size){
+        if (newSize < ht->size)
+        {
             ht->resizing = true;
             resizeDown(ht, newSize);
-        } //handles corner case: ht->size = 2
-
+        } // handles corner case: ht->size = 2
     }
 
     migrate(ht);
