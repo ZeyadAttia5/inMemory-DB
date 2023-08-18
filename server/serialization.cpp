@@ -78,7 +78,7 @@ void res_ser_str(std::string &res, const std::string &str)
 void res_ser_int(std::string &res, int64_t num)
 {
     res.push_back(SER_INT);
-    res.append((char *)num, 8);
+    res.append((char *)&num, 8);
 }
 
 /*
