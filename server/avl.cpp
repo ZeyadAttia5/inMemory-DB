@@ -36,14 +36,20 @@ Node *AVLTree::rotateLeft(Node *node){
     return right;
 }
 
-Node *AVLTree::insert(Node *node, int key){
+Node *AVLTree::insert(Node *node, int key, std::string value){
     if(node == NULL){
-        return new Node(key);
+        if (root == NULL)
+        {
+            root = new Node(key, value);
+            return root;
+        }
+        
+        return new Node(key, value);
     }
     if(key < node->key){
-        node->left = insert(node->left, key);
+        node->left = insert(node->left, key, value);
     } else if(key > node->key){
-        node->right = insert(node->right, key);
+        node->right = insert(node->right, key, value);
     } else {
         return node;
     }
@@ -153,45 +159,45 @@ void printTreeStructure(Node *node, int level){
 }
 
 
-int main(){
-    AVLTree *tree = new AVLTree();
-    tree->root = tree->insert(tree->root, 10);
-     printTreeStructure(tree->root, 0);
-     std::cout << std::endl;
-     std::cout << std::endl;
-    tree->root = tree->insert(tree->root, 20);
-     printTreeStructure(tree->root, 0);
-     std::cout << std::endl;
-     std::cout << std::endl;
-    tree->root = tree->insert(tree->root, 30);
-     printTreeStructure(tree->root, 0);
-     std::cout << std::endl;
-     std::cout << std::endl;
-    tree->root = tree->insert(tree->root, 40);
-     printTreeStructure(tree->root, 0);
-     std::cout << std::endl;
-     std::cout << std::endl;
-    tree->root = tree->insert(tree->root, 50);
-     printTreeStructure(tree->root, 0);
-     std::cout << std::endl;
-     std::cout << std::endl;
-    tree->root = tree->insert(tree->root, 25);
+// int main(){
+//     AVLTree *tree = new AVLTree();
+//     tree->root = tree->insert(tree->root, 10);
+//      printTreeStructure(tree->root, 0);
+//      std::cout << std::endl;
+//      std::cout << std::endl;
+//     tree->root = tree->insert(tree->root, 20);
+//      printTreeStructure(tree->root, 0);
+//      std::cout << std::endl;
+//      std::cout << std::endl;
+//     tree->root = tree->insert(tree->root, 30);
+//      printTreeStructure(tree->root, 0);
+//      std::cout << std::endl;
+//      std::cout << std::endl;
+//     tree->root = tree->insert(tree->root, 40);
+//      printTreeStructure(tree->root, 0);
+//      std::cout << std::endl;
+//      std::cout << std::endl;
+//     tree->root = tree->insert(tree->root, 50);
+//      printTreeStructure(tree->root, 0);
+//      std::cout << std::endl;
+//      std::cout << std::endl;
+//     tree->root = tree->insert(tree->root, 25);
 
-    printTreeStructure(tree->root, 0);
-     std::cout << std::endl;
-     std::cout << std::endl;
+//     printTreeStructure(tree->root, 0);
+//      std::cout << std::endl;
+//      std::cout << std::endl;
 
-    tree->root = tree->remove(tree->root, 30);
-    printTreeStructure(tree->root, 0);
-     std::cout << std::endl;
-     std::cout << std::endl;
-    tree->root = tree->remove(tree->root, 40);
-    tree->root = tree->remove(tree->root, 50);
-    tree->root = tree->remove(tree->root, 25);
-    tree->root = tree->remove(tree->root, 20);
-    tree->root = tree->remove(tree->root, 10);
+//     tree->root = tree->remove(tree->root, 30);
+//     printTreeStructure(tree->root, 0);
+//      std::cout << std::endl;
+//      std::cout << std::endl;
+//     tree->root = tree->remove(tree->root, 40);
+//     tree->root = tree->remove(tree->root, 50);
+//     tree->root = tree->remove(tree->root, 25);
+//     tree->root = tree->remove(tree->root, 20);
+//     tree->root = tree->remove(tree->root, 10);
 
     
     
-    return 0;
-}
+//     return 0;
+// }
