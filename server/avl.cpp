@@ -22,10 +22,18 @@ Node *AVLTree::rotateRight(Node *node)
 {
 	Node *left = node->left;
 	Node *leftRight = left->right;
+
 	left->right = node;
 	node->left = leftRight;
+
 	node->height = std::max(height(node->left), height(node->right)) + 1;
 	left->height = std::max(height(left->left), height(left->right)) + 1;
+
+	if (node == root)
+	{
+		root = left; // Update the root if it changed
+	}
+
 	return left;
 }
 
@@ -39,6 +47,12 @@ Node *AVLTree::rotateLeft(Node *node)
 
 	node->height = std::max(height(node->left), height(node->right)) + 1;
 	right->height = std::max(height(right->left), height(right->right)) + 1;
+
+	if (node == root)
+	{
+		root = right; // Update the root if it changed
+	}
+
 	return right;
 }
 
