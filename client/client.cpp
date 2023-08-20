@@ -10,6 +10,8 @@
 #include <netinet/ip.h>
 #include <string>
 #include <vector>
+// proj
+#include "common.h"
 
 
 static void msg(const char *msg) {
@@ -73,17 +75,9 @@ static int32_t send_req(int fd, const std::vector<std::string> &cmd) {
     return write_all(fd, wbuf, 4 + len);
 }
 
-enum {
-    SER_NIL = 0,
-    SER_ERR = 1,
-    SER_STR = 2,
-    SER_INT = 3,
-    SER_ARR = 4,
-};
-
 static int32_t on_response(const uint8_t *data, size_t size) {
     if (size < 1) {
-        msg("bad response1");
+        msg("bad response");
         return -1;
     }
     switch (data[0]) {
@@ -92,7 +86,7 @@ static int32_t on_response(const uint8_t *data, size_t size) {
         return 1;
     case SER_ERR:
         if (size < 1 + 8) {
-            msg("bad response2");
+            msg("bad response");
             return -1;
         }
         {
@@ -101,7 +95,7 @@ static int32_t on_response(const uint8_t *data, size_t size) {
             memcpy(&code, &data[1], 4);
             memcpy(&len, &data[1 + 4], 4);
             if (size < 1 + 8 + len) {
-                msg("bad response3");
+                msg("bad response");
                 return -1;
             }
             printf("(err) %d %.*s\n", code, len, &data[1 + 8]);
@@ -109,14 +103,14 @@ static int32_t on_response(const uint8_t *data, size_t size) {
         }
     case SER_STR:
         if (size < 1 + 4) {
-            msg("bad response4");
+            msg("bad response");
             return -1;
         }
         {
             uint32_t len = 0;
             memcpy(&len, &data[1], 4);
             if (size < 1 + 4 + len) {
-                msg("bad response5");
+                msg("bad response");
                 return -1;
             }
             printf("(str) %.*s\n", len, &data[1 + 4]);
@@ -124,7 +118,7 @@ static int32_t on_response(const uint8_t *data, size_t size) {
         }
     case SER_INT:
         if (size < 1 + 8) {
-            msg("bad response6");
+            msg("bad response");
             return -1;
         }
         {
@@ -133,9 +127,20 @@ static int32_t on_response(const uint8_t *data, size_t size) {
             printf("(int) %ld\n", val);
             return 1 + 8;
         }
+    case SER_DBL:
+        if (size < 1 + 8) {
+            msg("bad response");
+            return -1;
+        }
+        {
+            double val = 0;
+            memcpy(&val, &data[1], 8);
+            printf("(dbl) %g\n", val);
+            return 1 + 8;
+        }
     case SER_ARR:
         if (size < 1 + 4) {
-            msg("bad response7");
+            msg("bad response");
             return -1;
         }
         {
@@ -154,7 +159,7 @@ static int32_t on_response(const uint8_t *data, size_t size) {
             return (int32_t)arr_bytes;
         }
     default:
-        msg("bad response8");
+        msg("bad response");
         return -1;
     }
 }
