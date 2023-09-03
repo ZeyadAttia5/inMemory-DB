@@ -1,6 +1,37 @@
 #include "heap.hpp"
 #include <iostream>
 
+/* Heap_Node */
+uint64_t Heap_Node::get_ttl()
+{
+    return this->TTL;
+}
+std::string Heap_Node::get_Hkey()
+{
+    return this->Hkey;
+}
+std::string Heap_Node::get_Aname()
+{
+    return this->Aname;
+}
+int Heap_Node::get_Akey()
+{
+    return this->Akey;
+}
+
+bool Heap_Node::get_type(){
+    return this->type;
+}
+
+uint64_t Heap_Node::get_monotonic_usec()
+{
+	timespec tv = {0, 0};
+	clock_gettime(CLOCK_MONOTONIC, &tv);
+	return uint64_t(tv.tv_sec) * 1000000 + tv.tv_nsec / 1000;
+}
+
+/* Heap_Node */
+
 int64_t Heap::getParentIndex(size_t i)
 {
     if (i == 0)
@@ -21,9 +52,9 @@ bool Heap::hasParent(size_t i)
 bool Heap::hasLeft(size_t i) { return getLeftIndex(i) < heap.size(); }
 bool Heap::hasRight(size_t i) { return getRightIndex(i) < heap.size(); }
 
-uint64_t Heap::getParent(size_t i) { return (hasParent(i)) ? heap[getParentIndex(i)] : 0; }
-uint64_t Heap::getLeft(size_t i) { return (hasLeft(i)) ? heap[getLeftIndex(i)] : 0; }
-uint64_t Heap::getRight(size_t i) { return (hasRight(i)) ? heap[getRightIndex(i)] : 0; }
+uint64_t Heap::getParent(size_t i) { return (hasParent(i)) ? heap[getParentIndex(i)].get_ttl() : 0; }
+uint64_t Heap::getLeft(size_t i) { return (hasLeft(i)) ? heap[getLeftIndex(i)].get_ttl() : 0; }
+uint64_t Heap::getRight(size_t i) { return (hasRight(i)) ? heap[getRightIndex(i)].get_ttl() : 0; }
 
 bool Heap::isEmpty() { return heap.size() == 0; }
 size_t Heap::size() { return heap.size(); }
@@ -45,28 +76,38 @@ uint64_t Heap::peek()
         std::cerr << "Heap is empty." << std::endl;
         return -1;
     }
-    return heap[0];
+    return heap[0].get_ttl();
 }
 
 // poll the top of the heap (the smallest element)
-uint64_t Heap::poll()
+Heap_Node Heap::poll()
 {
     if (heap.size() == 0)
     {
         std::cerr << "Heap is empty." << std::endl;
-        return -1;
     }
-    uint64_t item = heap[0];
-    heap[0] = heap[heap.size() - 1];
-    heap.pop_back();
-    heapifyDown();
-    return item;
+    else
+    {
+
+        Heap_Node item = heap[0];
+        heap[0] = heap[heap.size() - 1];
+        heap.pop_back();
+        heapifyDown();
+        return item;
+    }
 }
 
 // add an element to the heap
-void Heap::add(uint64_t value)
+void Heap::add(uint64_t value, std::string Aname, int Akey)
 {
-    heap.push_back(value);
+    Heap_Node *node = new Heap_Node(value, Aname, Akey);
+    heap.push_back(*node);
+    heapifyUp();
+}
+void Heap::add(uint64_t value, std::string Hkey)
+{
+    Heap_Node *node = new Heap_Node(value, Hkey);
+    heap.push_back(*node);
     heapifyUp();
 }
 
@@ -83,7 +124,7 @@ void Heap::heapifyUp()
 
         index = heap.size() - 1;
     }
-    while (hasParent(index) && getParent(index) > heap[index])
+    while (hasParent(index) && getParent(index) > heap[index].get_ttl())
     {
         swap(getParentIndex(index), index);
         index = getParentIndex(index);
@@ -101,7 +142,7 @@ void Heap::heapifyDown()
         {
             smallerChildIndex = getRightIndex(index);
         }
-        if (heap[index] < heap[smallerChildIndex])
+        if (heap[index].get_ttl() < heap[smallerChildIndex].get_ttl())
         {
             break;
         }
@@ -120,11 +161,11 @@ void Heap::heap_print()
     {
         if (hasLeft(i))
         {
-            std::cout << " PARENT : " << heap[i] << " LEFT CHILD : " << heap[getLeftIndex(i)];
+            std::cout << " PARENT : " << heap[i].get_ttl() << " LEFT CHILD : " << heap[getLeftIndex(i)].get_ttl();
         }
         if (hasRight(i))
         {
-            std::cout << " RIGHT CHILD :" << heap[getRightIndex(i)] << std::endl;
+            std::cout << " RIGHT CHILD :" << heap[getRightIndex(i)].get_ttl() << std::endl;
         }
         else
         {
@@ -138,12 +179,12 @@ int main()
 {
     Heap *heap = new Heap();
 
-    heap->add(5);
-    heap->add(3);
-    heap->add(4);
-    heap->add(1);
-    heap->add(2);
-    heap->add(0);
+    heap->add(5, "ahmed");
+    heap->add(3, "ahed");
+    heap->add(4, "amed");
+    heap->add(1, "ahme");
+    heap->add(2, "ahmed");
+    heap->add(0, "hed");
     std::cout << heap->peek() << std::endl;
 
     heap->heap_print();
@@ -152,6 +193,6 @@ int main()
     for (size_t i = 0; i < 6; i++)
     {
         // std::cout << heap->peek() << std::endl;
-        std::cout << heap->poll() << std::endl;
+        std::cout << heap->poll().get_ttl() << std::endl;
     }
 }

@@ -19,14 +19,13 @@
 #include "serialization.cpp"
 #include "avl.cpp"
 #include "linkedlist.hpp"
+#include "heap.hpp"
 
-
+#define k_max_works	 2000
 
 #define container_of(ptr, type, member) ({                  \
     const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
-    (type *)( (char *)__mptr - offsetof(type, member) );})
-
-
+    (type *)( (char *)__mptr - offsetof(type, member) ); })
 
 static void msg(const char *msg)
 {
@@ -83,8 +82,6 @@ enum
 	STATE_END = 2, // mark the connection for deletion
 };
 
-
-
 struct Conn
 {
 	int fd = -1;
@@ -98,65 +95,122 @@ struct Conn
 	uint8_t wbuf[4 + k_max_msg];
 
 	uint64_t idle_start = 0;
-    // timer
-    DList idle_list;
+	// timer
+	DList idle_list;
 };
 
-static struct {
-    HashTable db;
-    // a map of all client connections, keyed by fd
-    std::vector<Conn *> fd2conn;
-    // timers for idle connections
-    DList idle_list;
+static struct
+{
+	HashTable db;
+
+	// a map of all client connections, keyed by fd
+	std::vector<Conn *> fd2conn;
+
+	// timers for idle connections
+	DList idle_list;
+
+	// timers for TTLs
+	Heap ttl_heap;
 } g_data;
 
 /* TIMERS */
 
 const uint64_t k_idle_timeout_ms = 5 * 1000;
 
-static uint64_t get_monotonic_usec() {
-    timespec tv = {0, 0};
-    clock_gettime(CLOCK_MONOTONIC, &tv);
-    return uint64_t(tv.tv_sec) * 1000000 + tv.tv_nsec / 1000;
+void evict_ANode(Heap_Node Anode)
+{
+	auto treeIter = avlTrees.find(Anode.get_Aname());
+	if (treeIter == avlTrees.end())
+	{
+		// sorted set not found, do nothing
+	}
+	else
+	{
+		Node *node = treeIter->second->remove(treeIter->second->root, Anode.get_Akey());
+	}
+}
+void evict_HNode(Heap_Node node)
+{
+	remove(g_map, node.get_Hkey());
 }
 
-
-static uint32_t next_timer_ms() {
-    if (dlist_empty(&g_data.idle_list)) {
-        return 10000;   // no timer, the value doesn't matter
-    }
-
-    uint64_t now_us = get_monotonic_usec();
-    Conn *next = container_of(g_data.idle_list.next, Conn, idle_list);
-    uint64_t next_us = next->idle_start + k_idle_timeout_ms * 1000;
-    if (next_us <= now_us) {
-        // missed?
-        return 0;
-    }
-
-    return (uint32_t)((next_us - now_us) / 1000);
+static uint64_t get_monotonic_usec()
+{
+	timespec tv = {0, 0};
+	clock_gettime(CLOCK_MONOTONIC, &tv);
+	return uint64_t(tv.tv_sec) * 1000000 + tv.tv_nsec / 1000;
 }
 
-static void conn_done(Conn *conn) {
-    g_data.fd2conn[conn->fd] = NULL;
-    (void)close(conn->fd);
-    dlist_detach(&conn->idle_list);
-    free(conn);
+static uint32_t next_timer_ms()
+{
+	if (dlist_empty(&g_data.idle_list))
+	{
+		return 10000; // no timer, the value doesn't matter
+	}
+
+	uint64_t now_us = get_monotonic_usec();
+	Conn *next = container_of(g_data.idle_list.next, Conn, idle_list);
+	uint64_t next_us = next->idle_start + k_idle_timeout_ms * 1000;
+
+	// ttl timers
+	if (!g_data.ttl_heap.isEmpty() && g_data.ttl_heap.peek() < next_us)
+	{
+		next_us = g_data.ttl_heap.peek();
+	}
+
+	if (next_us <= now_us)
+	{
+		// missed?
+		return 0;
+	}
+
+	return (uint32_t)((next_us - now_us) / 1000);
 }
 
-static void process_timers() {
-    uint64_t now_us = get_monotonic_usec();
-    while (!dlist_empty(&g_data.idle_list)) {
-        Conn *next = container_of(g_data.idle_list.next, Conn, idle_list);
-        uint64_t next_us = next->idle_start + k_idle_timeout_ms * 1000;
-        if (next_us >= now_us + 1000) {
-            // not ready, the extra 1000us is for the ms resolution of poll()
-            break;
-        }
+static void conn_done(Conn *conn)
+{
+	g_data.fd2conn[conn->fd] = NULL;
+	(void)close(conn->fd);
+	dlist_detach(&conn->idle_list);
+	free(conn);
+}
 
-        printf("removing idle connection: %d\n", next->fd);
-        conn_done(next);
-    }
+static void process_timers()
+{
+	uint64_t now_us = get_monotonic_usec();
+	while (!dlist_empty(&g_data.idle_list))
+	{
+		Conn *next = container_of(g_data.idle_list.next, Conn, idle_list);
+		uint64_t next_us = next->idle_start + k_idle_timeout_ms * 1000;
+		if (next_us >= now_us + 1000)
+		{
+			// not ready, the extra 1000us is for the ms resolution of poll()
+			break;
+		}
+		printf("removing idle connection: %d\n", next->fd);
+		conn_done(next);
+	}
+
+	// TTL timers
+	size_t nworks = 0;
+	while (!g_data.ttl_heap.isEmpty() && g_data.ttl_heap.peek() < now_us)
+	{
+		// evict the peek timer and its corresponding node
+		Heap_Node node = g_data.ttl_heap.poll();
+		if (node.get_type())
+		{
+			evict_ANode(node);
+		}
+		else
+		{
+			evict_HNode(node);
+		}
+		if (nworks++ >= k_max_works)
+		{
+			// don't stall the server if too many keys are expiring at once
+			break;
+		}
+	}
 }
 
 /* TIMERS */
@@ -184,21 +238,22 @@ static int32_t accept_new_conn(std::vector<Conn *> &fd2conn, int fd)
 
 	// set the new connection fd to nonblocking mode
 	fd_set_nb(connfd);
-	 // creating the struct Conn
-    struct Conn *conn = (struct Conn *)malloc(sizeof(struct Conn));
-    if (!conn) {
-        close(connfd);
-        return -1;
-    }
-    conn->fd = connfd;
-    conn->state = STATE_REQ;
-    conn->rbuf_size = 0;
-    conn->wbuf_size = 0;
-    conn->wbuf_sent = 0;
-    conn->idle_start = get_monotonic_usec();
-    dlist_insert_before(&g_data.idle_list, &conn->idle_list);
-    conn_put(g_data.fd2conn, conn);
-    return 0;
+	// creating the struct Conn
+	struct Conn *conn = (struct Conn *)malloc(sizeof(struct Conn));
+	if (!conn)
+	{
+		close(connfd);
+		return -1;
+	}
+	conn->fd = connfd;
+	conn->state = STATE_REQ;
+	conn->rbuf_size = 0;
+	conn->wbuf_size = 0;
+	conn->wbuf_sent = 0;
+	conn->idle_start = get_monotonic_usec();
+	dlist_insert_before(&g_data.idle_list, &conn->idle_list);
+	conn_put(g_data.fd2conn, conn);
+	return 0;
 }
 
 static void state_req(Conn *conn);
@@ -337,8 +392,8 @@ static void do_Adel(std::vector<std::string> &cmd, std::string &out)
 	{
 		// try
 		// {
-			int key = stoi(cmd[2]);
-			Node *node = treeIter->second->remove(treeIter->second->root, key);
+		int key = stoi(cmd[2]);
+		Node *node = treeIter->second->remove(treeIter->second->root, key);
 		// }
 		// catch (const std::exception &e)
 		// {
@@ -369,6 +424,7 @@ static void do_set(std::vector<std::string> &cmd, std::string &out)
 	return res_ser_nil(out);
 }
 
+// cmd: ["del", "key"]
 static void do_del(std::vector<std::string> &cmd, std::string &out)
 {
 	// (void)res;
@@ -639,11 +695,10 @@ static void connection_io(Conn *conn)
 {
 
 	// waked up by poll, update the idle timer
-    // by moving conn to the end of the list.
-    conn->idle_start = get_monotonic_usec();
-    dlist_detach(&conn->idle_list);
-    dlist_insert_before(&g_data.idle_list, &conn->idle_list);
-
+	// by moving conn to the end of the list.
+	conn->idle_start = get_monotonic_usec();
+	dlist_detach(&conn->idle_list);
+	dlist_insert_before(&g_data.idle_list, &conn->idle_list);
 
 	if (conn->state == STATE_REQ)
 	{
@@ -659,13 +714,12 @@ static void connection_io(Conn *conn)
 	}
 }
 
-
-
 int main()
 {
-	
+
 	dlist_init(&g_data.idle_list);
-	
+	g_data.ttl_heap = Heap(); // initialize ttl-heap
+
 	int fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (fd < 0)
 	{
@@ -744,16 +798,16 @@ int main()
 				{
 					// client closed normally, or something bad happened.
 					// destroy this connection
-					//fd2conn[conn->fd] = NULL;
+					// fd2conn[conn->fd] = NULL;
 					//(void)close(conn->fd);
-					//free(conn);
+					// free(conn);
 					conn_done(conn);
 				}
 			}
 		}
 
 		// handle timers
-        process_timers();
+		process_timers();
 
 		// try to accept a new connection if the listening fd is active
 		if (poll_args[0].revents)
