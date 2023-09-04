@@ -1,4 +1,4 @@
-#include "heap.hpp"
+#include "../include/heap.hpp"
 #include <iostream>
 
 /* Heap_Node */
@@ -85,6 +85,7 @@ Heap_Node Heap::poll()
     if (heap.size() == 0)
     {
         std::cerr << "Heap is empty." << std::endl;
+        
     }
     else
     {
@@ -175,24 +176,24 @@ void Heap::heap_print()
     std::cout << std::endl;
 }
 
-int main()
-{
-    Heap *heap = new Heap();
+// int main()
+// {
+//     Heap *heap = new Heap();
 
-    heap->add(5, "ahmed");
-    heap->add(3, "ahed");
-    heap->add(4, "amed");
-    heap->add(1, "ahme");
-    heap->add(2, "ahmed");
-    heap->add(0, "hed");
-    std::cout << heap->peek() << std::endl;
+//     heap->add(5, "ahmed");
+//     heap->add(3, "ahed");
+//     heap->add(4, "amed");
+//     heap->add(1, "ahme");
+//     heap->add(2, "ahmed");
+//     heap->add(0, "hed");
+//     std::cout << heap->peek() << std::endl;
 
-    heap->heap_print();
+//     heap->heap_print();
 
-    // tests heapifyDown/poll
-    for (size_t i = 0; i < 6; i++)
-    {
-        // std::cout << heap->peek() << std::endl;
-        std::cout << heap->poll().get_ttl() << std::endl;
-    }
-}
+//     // tests heapifyDown/poll
+//     for (size_t i = 0; i < 6; i++)
+//     {
+//         // std::cout << heap->peek() << std::endl;
+//         std::cout << heap->poll().get_ttl() << std::endl;
+//     }
+// }

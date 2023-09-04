@@ -1,5 +1,6 @@
 
-
+#ifndef __SERIALIZATION_H__
+#define __SERIALIZATION_H__
 
 #include <string>
 /* 
@@ -32,3 +33,4 @@ void res_ser_int(std::string &res, int64_t num);
 void res_ser_arr(std::string &res, uint32_t len);
 
 
+#endif

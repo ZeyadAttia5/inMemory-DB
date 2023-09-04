@@ -2,7 +2,10 @@
 #include <stddef.h>
 #include <vector>
 #include <stdint.h>
+#include <string>
 
+#ifndef HEAP_HPP
+#define HEAP_HPP
 
 class Heap_Node
 {
@@ -27,7 +30,7 @@ public:
     }
     Heap_Node(uint64_t TTL, std::string Hkey)        //constructor for hashtable Node
     {
-        this->TTL = this->TTL = get_monotonic_usec() + TTL * 1000;
+        this->TTL = get_monotonic_usec() + TTL * 1000;
         this->Hkey = Hkey;
         type = false;
     }
@@ -77,3 +80,6 @@ public:
         heap = emptyHeap;
     }
 };
+
+
+#endif

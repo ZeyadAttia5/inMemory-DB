@@ -15,13 +15,13 @@
 #include <vector>
 #include <map>
 
-#include "hashtable.cpp"
-#include "serialization.cpp"
-#include "avl.cpp"
-#include "linkedlist.hpp"
-#include "heap.hpp"
+#include "../include/serialization.hpp"
+#include "../include/avl.hpp"
+#include "../include/linkedlist.hpp"
+#include "../include/heap.hpp"
+#include "../include/hashtable.hpp"
 
-#define k_max_works	 2000
+#define k_max_works 2000
 
 #define container_of(ptr, type, member) ({                  \
     const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
@@ -117,6 +117,8 @@ static struct
 
 const uint64_t k_idle_timeout_ms = 5 * 1000;
 
+HashTable *g_map = initHashTable(2);
+std::map<std::string, AVLTree *> avlTrees;
 void evict_ANode(Heap_Node Anode)
 {
 	auto treeIter = avlTrees.find(Anode.get_Aname());
@@ -143,19 +145,25 @@ static uint64_t get_monotonic_usec()
 
 static uint32_t next_timer_ms()
 {
-	if (dlist_empty(&g_data.idle_list))
-	{
-		return 10000; // no timer, the value doesn't matter
-	}
-
 	uint64_t now_us = get_monotonic_usec();
-	Conn *next = container_of(g_data.idle_list.next, Conn, idle_list);
-	uint64_t next_us = next->idle_start + k_idle_timeout_ms * 1000;
+	uint64_t next_us = (uint64_t)-1;
+
+	// idle timers
+	if (!dlist_empty(&g_data.idle_list))
+	{
+		Conn *next = container_of(g_data.idle_list.next, Conn, idle_list);
+		next_us = next->idle_start + k_idle_timeout_ms * 1000;
+	}
 
 	// ttl timers
 	if (!g_data.ttl_heap.isEmpty() && g_data.ttl_heap.peek() < next_us)
 	{
 		next_us = g_data.ttl_heap.peek();
+	}
+
+	if (next_us == (uint64_t)-1)
+	{
+		return 10000; // no timer, the value doesn't matter
 	}
 
 	if (next_us <= now_us)
@@ -316,12 +324,58 @@ enum
 // until we implement a hashtable in the next chapter.
 // static std::map<std::string, std::string> g_map;
 
-HashTable *g_map = initHashTable(2);
-std::map<std::string, AVLTree *> avlTrees;
+/*
+ cmd:  [EXPIRE, (str)sorted_set_name, (int)key, (uint_64)number of seconds]	-> sorted set
+		******************************** OR ********************************
+ cmd:  [EXPIRE, (str)key, (uint_64)number of seconds]						-> HashTable
+*/
+static void do_expire(std::vector<std::string> &cmd, std::string &out)
+{
+	// 1- decide tree or hashtable
+	// 2- get the data node's info
+	// 3- add the key to the heap
+
+	uint64_t ttl_val = stoi(cmd[2]);
+	if (cmd.size() == 3)
+	{
+		// hashtable
+		std::string value = get(g_map, cmd[1]);
+		if (value == "")
+		{
+			return res_ser_err(out, RES_ERR, "Key not found");
+		}
+		else
+		{
+			g_data.ttl_heap.add(ttl_val, cmd[1]);
+			res_ser_str(out, "TTL added successfully");
+		}
+	}
+	else if (cmd.size() == 4)
+	{
+		// sorted set
+
+		auto treeIter = avlTrees.find(cmd[1]);
+		if (treeIter == avlTrees.end()) // sorted set not found
+		{
+			return res_ser_err(out, RES_ERR, "sorted set not found");
+		}
+		else
+		{
+			int rKey = stoi(cmd[2]);
+
+			if (!treeIter->second->contains(treeIter->second->root, rKey))
+			{
+				return res_ser_err(out, RES_ERR, "Key not found");
+			}
+			g_data.ttl_heap.add(ttl_val, cmd[1], rKey);
+			res_ser_str(out, "TTL added successfully");
+		}
+	}
+}
 
 /*
  cmd:  [Aset, list_name, Ahmed, 10]
- */
+*/
 static void do_Aset(std::vector<std::string> &cmd, std::string &out)
 {
 	// (void)res;
@@ -514,6 +568,14 @@ static void do_request(std::vector<std::string> &cmd, std::string &out)
 	else if (cmd.size() == 3 && cmd_is(cmd[0], "adel"))
 	{
 		do_Adel(cmd, out);
+	}
+	else if (cmd.size() == 4 && cmd_is(cmd[0], "EXPIRE"))
+	{
+		do_expire(cmd, out);
+	}
+	else if (cmd.size() == 3 && cmd_is(cmd[0], "EXPIRE"))
+	{
+		do_expire(cmd, out);
 	}
 	else
 	{

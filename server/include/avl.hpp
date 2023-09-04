@@ -1,6 +1,9 @@
 #include <iostream>
 #include <string>
 
+#ifndef AVL_HPP
+#define AVL_HPP
+
 class Node
 {
 
@@ -49,3 +52,5 @@ public:
     Node *search(Node *node, int key);
     bool contains(Node *node, int key);
 };
+
+#endif

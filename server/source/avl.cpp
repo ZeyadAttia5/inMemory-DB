@@ -1,4 +1,4 @@
-#include "avl.hpp"
+#include "../include/avl.hpp"
 
 int AVLTree::height(Node *node)
 {
