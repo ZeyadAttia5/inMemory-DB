@@ -19,6 +19,7 @@
 #include "serialization.cpp"
 #include "avl.cpp"
 #include "linkedlist.hpp"
+#include "threadpool.cpp"
 
 
 
@@ -85,6 +86,8 @@ enum
 
 
 
+
+
 struct Conn
 {
 	int fd = -1;
@@ -108,7 +111,12 @@ static struct {
     std::vector<Conn *> fd2conn;
     // timers for idle connections
     DList idle_list;
+
+	// the thread pool
+    TheadPool tp;
 } g_data;
+
+
 
 /* TIMERS */
 
@@ -665,6 +673,7 @@ int main()
 {
 	
 	dlist_init(&g_data.idle_list);
+	thread_pool_init(&g_data.tp, 4);
 	
 	int fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (fd < 0)
