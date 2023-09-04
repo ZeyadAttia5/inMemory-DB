@@ -139,6 +139,7 @@ static uint32_t next_timer_ms() {
 
 static void conn_done(Conn *conn) {
     g_data.fd2conn[conn->fd] = NULL;
+	
     (void)close(conn->fd);
     dlist_detach(&conn->idle_list);
     free(conn);
@@ -172,6 +173,9 @@ static void conn_put(std::vector<Conn *> &fd2conn, struct Conn *conn)
 
 static int32_t accept_new_conn(std::vector<Conn *> &fd2conn, int fd)
 {
+
+	
+
 	// accept
 	struct sockaddr_in client_addr = {};
 	socklen_t socklen = sizeof(client_addr);
@@ -198,6 +202,7 @@ static int32_t accept_new_conn(std::vector<Conn *> &fd2conn, int fd)
     conn->idle_start = get_monotonic_usec();
     dlist_insert_before(&g_data.idle_list, &conn->idle_list);
     conn_put(g_data.fd2conn, conn);
+	conn_put(fd2conn, conn);
     return 0;
 }
 
@@ -431,6 +436,8 @@ static bool cmd_is(const std::string &word, const char *cmd)
 static void do_request(std::vector<std::string> &cmd, std::string &out)
 {
 
+	
+
 	if (cmd.size() == 1 && cmd_is(cmd[0], "keys"))
 	{
 		do_keys(cmd, out);
@@ -468,6 +475,7 @@ static void do_request(std::vector<std::string> &cmd, std::string &out)
 
 static bool try_one_request(Conn *conn)
 {
+	
 	// try to parse a request from the buffer
 	if (conn->rbuf_size < 4)
 	{
@@ -544,6 +552,9 @@ static bool try_one_request(Conn *conn)
 
 static bool try_fill_buffer(Conn *conn)
 {
+
+	
+
 	// try to fill the buffer
 	assert(conn->rbuf_size < sizeof(conn->rbuf));
 	ssize_t rv = 0;
@@ -597,6 +608,9 @@ static void state_req(Conn *conn)
 
 static bool try_flush_buffer(Conn *conn)
 {
+
+	
+
 	ssize_t rv = 0;
 	do
 	{
@@ -644,6 +658,7 @@ static void connection_io(Conn *conn)
     dlist_detach(&conn->idle_list);
     dlist_insert_before(&g_data.idle_list, &conn->idle_list);
 
+	
 
 	if (conn->state == STATE_REQ)
 	{
@@ -708,9 +723,13 @@ int main()
 		// for convenience, the listening fd is put in the first position
 		struct pollfd pfd = {fd, POLLIN, 0};
 		poll_args.push_back(pfd);
+
+		
 		// connection fds
 		for (size_t i = 1; i < fd2conn.size(); ++i)
 		{
+			
+			
 
 			Conn *conn = fd2conn[i];
 
@@ -733,9 +752,13 @@ int main()
 			die("poll");
 		}
 
+		
+
 		// process active connections
 		for (size_t i = 1; i < poll_args.size(); ++i)
 		{
+			
+
 			if (poll_args[i].revents)
 			{
 				Conn *conn = g_data.fd2conn[poll_args[i].fd];

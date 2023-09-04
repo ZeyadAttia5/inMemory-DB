@@ -17,7 +17,7 @@ inline uint64_t str_hash(const uint8_t *data, size_t len) {
     return h;
 }
 
-enum {
+enum{
     SER_NIL = 0,
     SER_ERR = 1,
     SER_STR = 2,
