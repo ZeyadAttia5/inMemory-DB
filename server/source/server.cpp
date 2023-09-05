@@ -261,6 +261,7 @@ static int32_t accept_new_conn(std::vector<Conn *> &fd2conn, int fd)
 	conn->idle_start = get_monotonic_usec();
 	dlist_insert_before(&g_data.idle_list, &conn->idle_list);
 	conn_put(g_data.fd2conn, conn);
+	conn_put(fd2conn, conn);
 	return 0;
 }
 
@@ -323,6 +324,17 @@ enum
 // The data structure for the key space. This is just a placeholder
 // until we implement a hashtable in the next chapter.
 // static std::map<std::string, std::string> g_map;
+
+/*
+ cmd:  [ttl, (str)sorted_set_name, (int)key]	-> sorted set
+		******************************** OR ********************************
+ cmd:  [ttl, (str)key]						-> HashTable
+*/
+static void do_ttl(std::vector<std::string> &cmd, std::string &out){
+
+
+}
+
 
 /*
  cmd:  [EXPIRE, (str)sorted_set_name, (int)key, (uint_64)number of seconds]	-> sorted set
@@ -569,13 +581,21 @@ static void do_request(std::vector<std::string> &cmd, std::string &out)
 	{
 		do_Adel(cmd, out);
 	}
-	else if (cmd.size() == 4 && cmd_is(cmd[0], "EXPIRE"))
+	else if (cmd.size() == 4 && cmd_is(cmd[0], "expire"))
 	{
 		do_expire(cmd, out);
 	}
-	else if (cmd.size() == 3 && cmd_is(cmd[0], "EXPIRE"))
+	else if (cmd.size() == 3 && cmd_is(cmd[0], "expire"))
 	{
 		do_expire(cmd, out);
+	}
+		else if (cmd.size() == 3 && cmd_is(cmd[0], "ttl"))
+	{
+		do_ttl(cmd, out);
+	}
+	else if (cmd.size() == 2 && cmd_is(cmd[0], "ttl"))
+	{
+		do_ttl(cmd, out);
 	}
 	else
 	{

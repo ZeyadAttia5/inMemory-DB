@@ -3,6 +3,7 @@
 #include <vector>
 #include <stdint.h>
 #include <string>
+#include <time.h>
 
 #ifndef HEAP_HPP
 #define HEAP_HPP
@@ -12,25 +13,25 @@ class Heap_Node
 private:
     uint64_t TTL;
 
-    std::string Hkey;   //key of the hashtable node
+    std::string Hkey; // key of the hashtable node
 
-    std::string Aname;  //name of the AVL tree
-    int Akey;           //key of the AVL node
-    bool type;          //true for AVL, false for hashtable
+    std::string Aname; // name of the AVL tree
+    int Akey;          // key of the AVL node
+    bool type;         // true for AVL, false for hashtable
 
     uint64_t get_monotonic_usec();
 
 public:
-    Heap_Node(uint64_t TTL, std::string Aname, int Akey)   //constructor for AVL Node
+    Heap_Node(uint64_t TTL, std::string Aname, int Akey) // constructor for AVL Node
     {
-        this->TTL = get_monotonic_usec() + TTL * 1000;
+        this->TTL = get_monotonic_usec() + TTL * 1000000;
         this->Aname = Aname;
         this->Akey = Akey;
         type = true;
     }
-    Heap_Node(uint64_t TTL, std::string Hkey)        //constructor for hashtable Node
+    Heap_Node(uint64_t TTL, std::string Hkey) // constructor for hashtable Node
     {
-        this->TTL = get_monotonic_usec() + TTL * 1000;
+        this->TTL = get_monotonic_usec() + TTL * 1000000;
         this->Hkey = Hkey;
         type = false;
     }
@@ -40,7 +41,6 @@ public:
     int get_Akey();
     bool get_type();
 };
-
 
 class Heap
 {
@@ -72,7 +72,7 @@ public:
     void heap_print();
     bool isEmpty();
     size_t size();
-    
+
     Heap()
     {
         // Initialize the heap as an empty vector
@@ -80,6 +80,5 @@ public:
         heap = emptyHeap;
     }
 };
-
 
 #endif
