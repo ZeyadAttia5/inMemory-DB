@@ -16,8 +16,8 @@ set(SERVER_SOURCES
 set(CMAKE_BUILD_TYPE Debug)
 # Specify the header files for the server (if any)
 set(SERVER_HEADERS
-    ./include/hashtable.h
-    ./include/serialization.h
+    ./include/hashtable.hpp
+    ./include/serialization.hpp
     ./include/avl.hpp
     ./include/heap.hpp
 )
