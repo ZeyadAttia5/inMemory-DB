@@ -330,11 +330,60 @@ enum
 		******************************** OR ********************************
  cmd:  [ttl, (str)key]						-> HashTable
 */
-static void do_ttl(std::vector<std::string> &cmd, std::string &out){
+static void do_ttl(std::vector<std::string> &cmd, std::string &out)
+{
+	if (cmd.size() == 2)
+	{
+		// hashtable
+		std::string value = get(g_map, cmd[1]);
+		if (value == "")
+		{
+			return res_ser_err(out, RES_ERR, "Key not found");
+		}
+		else
+		{
+			uint64_t ttl = g_data.ttl_heap.getTTL(cmd[1]);
+			if (ttl == (uint64_t)-1)
+			{
+				return res_ser_err(out, RES_ERR, "Key has no TTL");
+			}
+			else
+			{
+				uint64_t remaining = (ttl - get_monotonic_usec()) / 1000000;
+				res_ser_int(out, remaining);
+			}
+		}
+	}
+	else if (cmd.size() == 3)
+	{
+		// sorted set
 
+		auto treeIter = avlTrees.find(cmd[1]);
+		if (treeIter == avlTrees.end()) // sorted set not found
+		{
+			return res_ser_err(out, RES_ERR, "sorted set not found");
+		}
+		else
+		{
+			int rKey = stoi(cmd[2]);
 
+			if (!treeIter->second->contains(treeIter->second->root, rKey))
+			{
+				return res_ser_err(out, RES_ERR, "Key not found");
+			}
+			uint64_t ttl = g_data.ttl_heap.getTTL(cmd[1], rKey);
+			if (ttl == 0)
+			{
+				return res_ser_err(out, RES_ERR, "Key has no TTL");
+			}
+			else
+			{
+				uint64_t remaining = (ttl - get_monotonic_usec()) / 1000000;
+				res_ser_int(out, remaining);
+			}
+		}
+	}
 }
-
 
 /*
  cmd:  [EXPIRE, (str)sorted_set_name, (int)key, (uint_64)number of seconds]	-> sorted set
@@ -589,7 +638,7 @@ static void do_request(std::vector<std::string> &cmd, std::string &out)
 	{
 		do_expire(cmd, out);
 	}
-		else if (cmd.size() == 3 && cmd_is(cmd[0], "ttl"))
+	else if (cmd.size() == 3 && cmd_is(cmd[0], "ttl"))
 	{
 		do_ttl(cmd, out);
 	}
@@ -900,4 +949,3 @@ int main()
 
 	return 0;
 }
-

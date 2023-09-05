@@ -19,15 +19,19 @@ int Heap_Node::get_Akey()
     return this->Akey;
 }
 
-bool Heap_Node::get_type(){
+// returns:
+//  true for AVL
+//  false for hashtable
+bool Heap_Node::get_type()
+{
     return this->type;
 }
 
 uint64_t Heap_Node::get_monotonic_usec()
 {
-	timespec tv = {0, 0};
-	clock_gettime(CLOCK_MONOTONIC, &tv);
-	return uint64_t(tv.tv_sec) * 1000000 + tv.tv_nsec / 1000;
+    timespec tv = {0, 0};
+    clock_gettime(CLOCK_MONOTONIC, &tv);
+    return uint64_t(tv.tv_sec) * 1000000 + tv.tv_nsec / 1000;
 }
 
 /* Heap_Node */
@@ -85,7 +89,6 @@ Heap_Node Heap::poll()
     if (heap.size() == 0)
     {
         std::cerr << "Heap is empty." << std::endl;
-        
     }
     else
     {
@@ -155,6 +158,41 @@ void Heap::heapifyDown()
     }
 }
 
+// search the heap for the given key and return the value
+uint64_t Heap::getTTL(const std::string Hkey)
+{
+    bool found = false;
+    for (Heap_Node &node : heap)
+    {
+        if (!node.get_type() && node.get_Hkey() == Hkey)
+        {
+            found = true;
+            return node.get_ttl();
+        }
+    }
+    // maximum possible value for an unsigned 64-bit integer (uint64_t)
+    // in decimal notation:
+    // 18,446,744,073,709,551,615
+    return (uint64_t)-1;
+}
+
+// search the heap for the given node and return the value
+uint64_t Heap::getTTL(std::string Aname, int Akey)
+{
+    bool found = false;
+    for (Heap_Node &node : heap)
+    {
+        if (node.get_type() && node.get_Aname() == Aname && node.get_Akey() == Akey)
+        {
+            found = true;
+            return node.get_ttl();
+        }
+    }
+    // maximum possible value for an unsigned 64-bit integer (uint64_t)
+    // in decimal notation:
+    // 18,446,744,073,709,551,615
+    return (uint64_t)-1;
+}
 // print the heap
 void Heap::heap_print()
 {

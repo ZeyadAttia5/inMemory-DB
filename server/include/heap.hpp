@@ -72,6 +72,8 @@ public:
     void heap_print();
     bool isEmpty();
     size_t size();
+    uint64_t getTTL(std::string Hkey);
+    uint64_t getTTL(std::string Aname, int Akey);
 
     Heap()
     {
