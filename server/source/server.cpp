@@ -396,9 +396,9 @@ static void do_expire(std::vector<std::string> &cmd, std::string &out)
 	// 2- get the data node's info
 	// 3- add the key to the heap
 
-	uint64_t ttl_val = stoi(cmd[2]);
 	if (cmd.size() == 3)
 	{
+
 		// hashtable
 		std::string value = get(g_map, cmd[1]);
 		if (value == "")
@@ -407,6 +407,7 @@ static void do_expire(std::vector<std::string> &cmd, std::string &out)
 		}
 		else
 		{
+			uint64_t ttl_val = stoi(cmd[2]);
 			g_data.ttl_heap.add(ttl_val, cmd[1]);
 			res_ser_str(out, "TTL added successfully");
 		}
@@ -428,6 +429,7 @@ static void do_expire(std::vector<std::string> &cmd, std::string &out)
 			{
 				return res_ser_err(out, RES_ERR, "Key not found");
 			}
+			uint64_t ttl_val = stoi(cmd[3]);
 			g_data.ttl_heap.add(ttl_val, cmd[1], rKey);
 			res_ser_str(out, "TTL added successfully");
 		}
