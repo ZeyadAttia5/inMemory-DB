@@ -6,18 +6,20 @@ set(CMAKE_CXX_STANDARD 17)
 
 # Specify the source files for the server
 set(SERVER_SOURCES
-    ./server.cpp
-    ./hashtable.cpp
-    ./serialization.cpp
-    ./avl.cpp
+    ./source/server.cpp
+    ./source/hashtable.cpp
+    ./source/serialization.cpp
+    ./source/avl.cpp
+    ./source/heap.cpp
 
 )
 set(CMAKE_BUILD_TYPE Debug)
 # Specify the header files for the server (if any)
 set(SERVER_HEADERS
-    ./hashtable.h
-    ./serialization.h
-    ./avl.hpp
+    ./include/hashtable.h
+    ./include/serialization.h
+    ./include/avl.hpp
+    ./include/heap.hpp
 )
 
 # Create the executable target for the server

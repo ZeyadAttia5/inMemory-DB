@@ -1,5 +1,8 @@
 #include <iostream>
 
+#ifndef LINKEDLIST_HPP
+#define LINKEDLIST_HPP
+
 struct DList {
     DList *prev = NULL;
     DList *next = NULL;
@@ -27,3 +30,5 @@ inline void dlist_insert_before(DList *target, DList *rookie) {
     rookie->next = target;
     target->prev = rookie;
 }
+
+#endif

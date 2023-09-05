@@ -4,6 +4,9 @@
 #include <iostream>
 #include <string>
 
+#ifndef HASHTABLE_H
+#define HASHTABLE_H
+
 typedef struct HNode{
 
     std::string key;
@@ -50,3 +53,4 @@ void set(HashTable* ht, std::string key, std::string value);
 
 bool contains(HashTable* ht, std::string key);
 
+#endif
