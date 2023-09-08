@@ -39,18 +39,22 @@ public:
 class AVLTree
 {
 
-public:
-    int height(Node *node);
-    int balance(Node *node);
-    Node *rotateRight(Node *node);
-    Node *rotateLeft(Node *node);
-    Node *root;
-    Node *insert(Node *node, int key, std::string value);
-    Node *remove(Node *node, int key);
-    Node *min(Node *node);
-    Node *max(Node *node);
-    Node *search(Node *node, int key);
-    bool contains(Node *node, int key);
+    
+
+    public:
+        int size = 0;
+        int height(Node *node);
+        int balance(Node *node);
+        Node *rotateRight(Node *node);
+        Node *rotateLeft(Node *node);
+        Node *root;
+        Node *insert(Node *node, int key, std::string value);
+        Node *remove(Node *node, int key);
+        Node *min(Node *node);
+        Node *max(Node *node);
+        Node *search(Node *node, int key);
+        bool contains(Node *node, int key);
+        void deleteTree(Node *node);
 };
 
 #endif

@@ -62,10 +62,12 @@ Node *AVLTree::insert(Node *node, int key, std::string value)
 	{
 		Node *node = new Node(key, value);
 		this->root = node;
+		size++;
 		return node;
 	}
 	if (node == NULL)
 	{
+		size++;
 		return new Node(key, value);
 	}
 	if (key < node->key)
@@ -78,6 +80,7 @@ Node *AVLTree::insert(Node *node, int key, std::string value)
 	}
 	else
 	{
+		size++;
 		return node;
 	}
 	node->height = std::max(height(node->left), height(node->right)) + 1;
@@ -107,6 +110,7 @@ Node *AVLTree::remove(Node *node, int key)
 {
 	if (node == NULL)
 	{
+		size--;
 		return node;
 	}
 	if (key < node->key)
@@ -119,6 +123,7 @@ Node *AVLTree::remove(Node *node, int key)
 	}
 	else
 	{
+		size--;
 		if (node->left == NULL || node->right == NULL)
 		{
 			Node *temp = node->left ? node->left : node->right;
@@ -164,6 +169,7 @@ Node *AVLTree::remove(Node *node, int key)
 		node->right = rotateRight(node->right);
 		return rotateLeft(node);
 	}
+	
 	return node;
 }
 
@@ -225,6 +231,18 @@ bool AVLTree::contains(Node *node, int key)
 	}
 	else
 		return true;
+}
+
+void AVLTree::deleteTree(Node *node)
+{
+	if (node == NULL)
+	{
+		return;
+	}
+	deleteTree(node->left);
+	deleteTree(node->right);
+	delete node;
+	
 }
 
 // int main()
