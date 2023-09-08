@@ -111,7 +111,12 @@ static struct
 
 	// timers for TTLs
 	Heap ttl_heap;
+
+	// the thread pool
+    TheadPool tp;
 } g_data;
+
+
 
 /* TIMERS */
 
@@ -853,6 +858,8 @@ int main()
 	dlist_init(&g_data.idle_list);
 	g_data.ttl_heap = Heap(); // initialize ttl-heap
 
+	thread_pool_init(&g_data.tp, 4);
+	
 	int fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (fd < 0)
 	{
